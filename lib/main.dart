@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' show ImageFilter;
+import 'components/bottom_nav_item.dart';
+import 'screens/post_home_screen.dart';
+import 'screens/discover_screen.dart';
+import 'screens/friends_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() => runApp(const MyMediaApp());
 
@@ -28,53 +34,191 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  static const double _kNavBarHeight = 64;
+  static const double _kNavMargin = 12;
+  static const double _kNavSide = 16;
+
   int _currentIndex = 0;
 
-  static const List<_NavItem> _tabs = [
-    _NavItem(label: 'Home', icon: Icons.home),
-    _NavItem(label: 'Search', icon: Icons.search),
-    _NavItem(label: 'Notifications', icon: Icons.notifications),
-    _NavItem(label: 'Messages', icon: Icons.message),
-    _NavItem(label: 'Profile', icon: Icons.person),
+  late final List<Widget> _pages = const [
+    PostHomeScreen(),
+    DiscoverScreen(),
+    FriendScreen(),
+    _CenterPlaceholder(title: 'Messages'),
+    ProfileScreen(),
   ];
-
-  late final List<Widget> _pages = _tabs
-      .map((t) => TabPlaceholder(title: t.label))
-      .toList();
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('MyMedia')),
-      body: SafeArea(
-        child: IndexedStack(
-          index: _currentIndex, // preserves state per tab
-          children: _pages,
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        items: [
-          for (final item in _tabs)
-            BottomNavigationBarItem(
-              icon: Icon(item.icon),
-              label: item.label,
+      extendBody: true,
+      appBar: _currentIndex == 0
+          ? AppBar(
+              backgroundColor: cs.surface,
+              centerTitle: false,
+              title: Text(
+                'MyMedia',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                  fontSize: 15,
+                ),
+              ),
+              actions: [
+                IconButton(
+                  tooltip: 'Settings',
+                  icon: const Icon(Icons.settings_rounded),
+                  iconSize: 20,
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Settings tapped')),
+                    );
+                  },
+                ),
+              ],
+            )
+          : null,
+      body: Stack(
+        children: [
+          // Add padding so content isn't hidden under the floating nav
+          Padding(
+            padding: EdgeInsets.only(
+              bottom: _kNavBarHeight + _kNavMargin + bottomInset,
             ),
+            child: IndexedStack(index: _currentIndex, children: _pages),
+          ),
+          // Floating glassy nav
+          Positioned(
+            left: _kNavSide,
+            right: _kNavSide,
+            bottom: _kNavMargin + bottomInset,
+            child: GlassBottomNavBar(
+              currentIndex: _currentIndex,
+              onTap: (i) => setState(() => _currentIndex = i),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class TabPlaceholder extends StatelessWidget {
-  const TabPlaceholder({super.key, required this.title});
+class GlassBottomNavBar extends StatelessWidget {
+  const GlassBottomNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32), // pill shape
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18), // frosted blur
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                cs.surface.withOpacity(0.60),
+                cs.surface.withOpacity(0.32),
+              ],
+            ),
+            border: Border.all(
+              color: cs.outlineVariant.withOpacity(0.55),
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  for (int i = 0; i < bottomNavItems.length; i++)
+                    Expanded(
+                      child: _NavButton(
+                        index: i,
+                        currentIndex: currentIndex,
+                        onTap: onTap,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavButton extends StatelessWidget {
+  const _NavButton({
+    required this.index,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  final int index;
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isActive = index == currentIndex;
+
+    return InkWell(
+      onTap: () => onTap(index),
+      borderRadius: BorderRadius.circular(24),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isActive ? cs.primary.withOpacity(0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Icon(
+          isActive
+              ? bottomNavItems[index].activeIcon
+              : bottomNavItems[index].icon,
+          size: isActive ? 28 : 26,
+          color: isActive ? cs.primary : cs.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class _CenterPlaceholder extends StatelessWidget {
+  const _CenterPlaceholder({required this.title});
   final String title;
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.headlineMedium?.copyWith(
+    final style =
+        Theme.of(context).textTheme.headlineMedium?.copyWith(
           fontWeight: FontWeight.w700,
           letterSpacing: -0.2,
         ) ??
@@ -82,10 +226,4 @@ class TabPlaceholder extends StatelessWidget {
 
     return Center(child: Text(title, style: style));
   }
-}
-
-class _NavItem {
-  final String label;
-  final IconData icon;
-  const _NavItem({required this.label, required this.icon});
 }

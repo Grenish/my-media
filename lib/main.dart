@@ -34,8 +34,7 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  static const double _kNavBarHeight = 64;
-  static const double _kNavMargin = 12;
+  static const double _kNavMargin = 50;
   static const double _kNavSide = 16;
 
   int _currentIndex = 0;
@@ -51,9 +50,11 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final mq = MediaQuery.of(context);
+    final isKeyboardOpen = mq.viewInsets.bottom > 0; // hide bar while typing
 
     return Scaffold(
+      // extendBody lets content draw behind the floating bar
       extendBody: true,
       appBar: _currentIndex == 0
           ? AppBar(
@@ -82,22 +83,32 @@ class _MainShellState extends State<MainShell> {
             )
           : null,
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          // Add padding so content isn't hidden under the floating nav
-          Padding(
-            padding: EdgeInsets.only(
-              bottom: _kNavBarHeight + _kNavMargin + bottomInset,
-            ),
-            child: IndexedStack(index: _currentIndex, children: _pages),
-          ),
-          // Floating glassy nav
+          // Edge-to-edge content. No SafeArea, no extra padding.
+          IndexedStack(index: _currentIndex, children: _pages),
+
+          // Floating glassy nav (overlay). Ignores any safe area.
           Positioned(
             left: _kNavSide,
             right: _kNavSide,
-            bottom: _kNavMargin + bottomInset,
-            child: GlassBottomNavBar(
-              currentIndex: _currentIndex,
-              onTap: (i) => setState(() => _currentIndex = i),
+            bottom: _kNavMargin,
+            child: AnimatedSlide(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              offset: isKeyboardOpen ? const Offset(0, 1) : Offset.zero,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                opacity: isKeyboardOpen ? 0 : 1,
+                child: IgnorePointer(
+                  ignoring: isKeyboardOpen,
+                  child: GlassBottomNavBar(
+                    currentIndex: _currentIndex,
+                    onTap: (i) => setState(() => _currentIndex = i),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

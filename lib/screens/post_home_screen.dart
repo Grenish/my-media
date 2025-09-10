@@ -15,6 +15,16 @@ class _PostHomeScreenState extends State<PostHomeScreen> {
   bool _isLoading = true;
   String? _error;
 
+  EdgeInsets _contentPadding(BuildContext context) {
+    // Left/Right = 16, Top = 12, Bottom adds safe-area + extra space to clear bottom nav
+    return EdgeInsets.only(
+      left: 16,
+      right: 16,
+      top: 12,
+      bottom: 12 + MediaQuery.of(context).padding.bottom + 80,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -118,7 +128,7 @@ class _PostHomeScreenState extends State<PostHomeScreen> {
     // Show skeleton loader on initial load
     if (_isLoading && _posts.isEmpty) {
       return ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+  padding: _contentPadding(context),
         itemCount: 5,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, i) => const _PostCardSkeleton(),
@@ -137,7 +147,7 @@ class _PostHomeScreenState extends State<PostHomeScreen> {
 
     // Display the list of posts
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+  padding: _contentPadding(context),
       itemCount: _posts.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, i) {

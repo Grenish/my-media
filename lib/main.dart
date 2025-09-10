@@ -34,7 +34,7 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  static const double _kNavMargin = 50;
+  static const double _kNavMargin = 20;
   static const double _kNavSide = 16;
 
   int _currentIndex = 0;
